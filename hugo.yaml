@@ -43,7 +43,6 @@ languages:
           pageRef: about/
           weight: 21
             # 搜索
-paginate: 10
 params:
   fuseOpts:
       isCaseSensitive: false # 是否大小写敏感
