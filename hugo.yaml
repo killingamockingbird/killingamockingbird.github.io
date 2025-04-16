@@ -14,6 +14,12 @@ enableEmoji: true # 允许 emoji
 pygmentsUseClasses: true
 defaultContentLanguage: zh # 顶部首先展示的语言界面
 defaultContentLanguageInSubdir: false # 是否要在地址栏加上默认的语言代码
+params:
+  pagination.pagerSize: 10
+
+ignoreLogs:
+  - warning-partial-superfluous-prefix
+
 languages:
   zh:
     languageName: "中文" # 展示的语言名
