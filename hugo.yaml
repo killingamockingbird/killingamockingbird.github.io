@@ -1,6 +1,6 @@
 baseURL: "https://kilingamockingbird.github.io/" # 主站的 URL
-title: echoingsilence's Blog # 站点标题
-copyright: "[©2025 SonnyCalcr's Blog](https://sonnycalcr.github.io/)" # 网站的版权声明，通常显示在页脚
+title: killingamockingbird's Blog # 站点标题
+copyright: "[©2025 killingamockingbird's Blog](https://sonnycalcr.github.io/)" # 网站的版权声明，通常显示在页脚
 theme: PaperMod # 主题
 languageCode: zh-cn # 语言
 
@@ -43,8 +43,23 @@ languages:
           pageRef: about/
           weight: 21
             # 搜索
-paginate: 10
 params:
+  socialIcons:
+    - name: github
+      title: Follow my Github
+      url: "https://github.com/killingamockingbird"
+    # - name: X
+    #   title: Follow my Twitter
+    #   url: "https://x.com/sonnycalcr"
+    - name: Bilibili
+      title: 关注我的 B 站帐号
+      url: "https://space.bilibili.com/202389049?spm_id_from=333.1007.0.0"
+    # - name: Youtube
+    #   title: Follow my Youtube Channel
+    #   url: "https://youtube.com/@sonnycalcr"
+    # - name: Telegram
+    #   title: Contact Me
+    #   url: "https://t.me/sonnycalcr"
   fuseOpts:
       isCaseSensitive: false # 是否大小写敏感
       shouldSort: true # 是否排序
@@ -55,3 +70,37 @@ params:
       # limit: 10 # refer: https://www.fusejs.io/api/methods.html#search
       keys: ["title", "permalink", "summary", "content"]
       includeMatches: true
+  # 评论的设置
+  giscus:
+    repo: "killingamockingbird/killingamockingbird.github.io"
+    repoId: "R_kgDOOalyiQ"
+    category: "General"
+    categoryId: "DIC_kwDOOalyic4CpLhp"
+    mapping: "pathname"
+    strict: "0"
+    reactionsEnabled: "1"
+    emitMetadata: "0"
+    inputPosition: "bottom"
+    lightTheme: "light"
+    darkTheme: "dark"
+    lang: "zh-CN"
+    crossorigin: "anonymous"    
+
+outputs:
+  home:
+    - HTML # 生成的静态页面
+    - RSS # 这个其实无所谓
+    - JSON # necessary for search, 这里的配置修改好之后，一定要重新生成一下
+markup:
+  goldmark:
+    renderer:
+      unsafe: true # 可以 unsafe，有些 html 标签和样式可能需要
+  highlight:
+    anchorLineNos: false # 不要给行号设置锚标
+    codeFences: true # 代码围栏
+    noClasses: false # TODO: 不知道干啥的，暂时没必要了解，不影响展示
+    lineNos: true # 代码行
+    lineNumbersInTable: false # 不要设置成 true，否则如果文章开头是代码的话，摘要会由一大堆数字(即代码行号)开头文章
+    # 这里设置 style 没用，得自己加 css
+    # style: "github-dark"
+    # style: monokai
