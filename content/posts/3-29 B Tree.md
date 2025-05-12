@@ -1,6 +1,8 @@
 ---
 title : "B tree and B+ tree"
 date : 2024-08-04T03:25:53+08:00
+ShowToc: true
+TocOpen: true
 
 ---
 
@@ -156,11 +158,11 @@ func (t *BTree) splitChild(parent *BTreeNode, index int) {
 
   如图依次删除依次删除【8】,【20】,【18】,【5】
 
-![image-20250329141935061](3-29 B Tree.assets/image-20250329141935061.png)
+![img](https://github.com/wardseptember/notes/raw/master/imgs/20200926203135.png)
 
 首先删除元素【8】，当然首先查找【8】，【8】在一个叶子结点中，删除后该叶子结点元素个数为2，符合B树规则，操作很简单，咱们只需要移动【11】至原来【8】的位置，移动【12】至【11】的位置（也就是结点中删除元素后面的元素向前移动）
 
-![image-20250329141337324](C:\Users\17863\AppData\Roaming\Typora\typora-user-images\image-20250329141337324.png)
+![image-20250421104619504](C:\Users\17863\AppData\Roaming\Typora\typora-user-images\image-20250421104619504.png)
 
 下一步，删除【20】,因为【20】没有在叶子结点中，而是在中间结点中找到，咱们发现他的继承者【23】(字母升序的下个元素即直接后驱节点)（会在直接前驱和后驱后驱节点中选元素足够的），将【23】上移到【20】的位置，然后将孩子结点中的【23】进行删除，这里恰好删除后，该孩子结点中元素个数大于2，无需进行合并操作。
 
