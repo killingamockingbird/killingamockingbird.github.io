@@ -6,7 +6,9 @@ date : 2025-05-12T11:14:00+08:00
 
 # ETCD
 
-![image-20250512114939110](image-20250512114939110.png)
+![https://github.com/killingamockingbird/killingamockingbird.github.io/blob/main/content/posts/image-20250512114939110.png?raw=true](image-20250512114939110.png)
+
+
 
 ## kratos源码分析理解
 
