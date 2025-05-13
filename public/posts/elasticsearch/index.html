@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>killingamockingbird&#39;s Blog</title>
+<meta name="keywords" content="">
+<meta name="description" content="ElasticSearch
+核心概念
+
+文档（Document）：ES 存储的基本单元，类似一条 JSON 数据
+索引（Index）：存储一类文档的集合，类似于数据库中的表。
+字段（Field）：文档中的每个键值对。
+倒排索引：ES 的底层结构，用于加速全文搜索。
+分片（Shard）与副本（Replica）：ES 支持分布式存储和查询，分片用于水平扩展。
+
+底层逻辑
+索引
+在介绍倒排索引之前，我们先来了解一下正排索引和全文检索。">
+<meta name="author" content="">
+<link rel="canonical" href="http://localhost:1313/posts/elasticsearch/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.f49d66caae9ea0fd43f21f29e71a8d3e284517ed770f2aa86fa012953ad3c9ef.css" integrity="sha256-9J1myq6eoP1D8h8p5xqNPihFF&#43;13Dyqob6ASlTrTye8=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/elasticsearch/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="killingamockingbird&#39;s Blog (Alt + H)">killingamockingbird&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="killingamockingbird&#39;s Blog">
+                    <span>首页</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="Categories">
+                    <span>分类</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="Tags">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="搜索">
+                    <span>搜索</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about/" title="关于">
+                    <span>关于</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    
+    <h1 class="post-title entry-hint-parent">
+      
+    </h1>
+    <div class="post-meta">
+
+</div>
+  </header> 
+  <div class="post-content"><h2 id="elasticsearch">ElasticSearch<a hidden class="anchor" aria-hidden="true" href="#elasticsearch">#</a></h2>
+<h2 id="核心概念">核心概念<a hidden class="anchor" aria-hidden="true" href="#核心概念">#</a></h2>
+<ul>
+<li><strong>文档（Document）</strong>：ES 存储的基本单元，类似一条 JSON 数据</li>
+<li><strong>索引（Index）</strong>：存储一类文档的集合，类似于数据库中的表。</li>
+<li><strong>字段（Field）</strong>：文档中的每个键值对。</li>
+<li><strong>倒排索引</strong>：ES 的底层结构，用于加速全文搜索。</li>
+<li><strong>分片（Shard）与副本（Replica）</strong>：ES 支持分布式存储和查询，分片用于水平扩展。</li>
+</ul>
+<h3 id="底层逻辑">底层逻辑<a hidden class="anchor" aria-hidden="true" href="#底层逻辑">#</a></h3>
+<h4 id="索引">索引<a hidden class="anchor" aria-hidden="true" href="#索引">#</a></h4>
+<p>在介绍<strong>倒排索引</strong>之前，我们先来了解一下<strong>正排索引</strong>和<strong>全文检索</strong>。</p>
+<h5 id="全文检索">全文检索<a hidden class="anchor" aria-hidden="true" href="#全文检索">#</a></h5>
+<h6 id="定义">定义<a hidden class="anchor" aria-hidden="true" href="#定义">#</a></h6>
+<p>全文检索是指系统<strong>不是按精确关键词匹配，而是理解文本内容的语言特性</strong>，实现模糊匹配、分词、排序、短语识别等操作的搜索方式。</p>
+<h6 id="例子">例子<a hidden class="anchor" aria-hidden="true" href="#例子">#</a></h6>
+<p>你在淘宝搜索框输入「苹果手机」，结果可能包括：</p>
+<ul>
+<li>标题是「iPhone 15」</li>
+<li>描述含有「苹果新品」</li>
+<li>同义词或错拼「pingguo」</li>
+</ul>
+<h6 id="全文检索vs模糊匹配">全文检索VS模糊匹配<a hidden class="anchor" aria-hidden="true" href="#全文检索vs模糊匹配">#</a></h6>
+<p>全文检索：</p>
+<p>​	分词后匹配多个词项。</p>
+<p>​	关键词需要准确</p>
+<p>​	技术：分词器、倒排索引、BM25打分</p>
+<p>模糊匹配:</p>
+<p>​	近似匹配：如拼写错误</p>
+<p>​	技术:Levenshtein编辑距离算法</p>
+<h5></h5>
+<h5 id="正排索引">正排索引<a hidden class="anchor" aria-hidden="true" href="#正排索引">#</a></h5>
+<p>即顺序索引，按照文档ID存储文档的所有内容。</p>
+<p>因此每次进行全文索引的时候需要对<strong>每个文档</strong>的<strong>所有内容</strong>进行扫描。</p>
+<p>查询需要O(n)的时间复杂度，对文章扫描更加耗时，因此正排索引进行全文检索的效率尤其低下。</p>
+<p>于是出现了倒排索引</p>
+<h5 id="倒排索引">倒排索引<a hidden class="anchor" aria-hidden="true" href="#倒排索引">#</a></h5>
+<h6 id="概念">概念<a hidden class="anchor" aria-hidden="true" href="#概念">#</a></h6>
+<p>接下来我们详细介绍倒排索引</p>
+<p><strong>我们需要根据文本的词来找到相应的文档</strong>，自然而然的我们可以想到<strong>预处理</strong>的模式，设置一个<strong>映射</strong>结构，即由<strong>词项</strong>来映射<strong>文本id</strong></p>
+<h6 id="实例">实例<a hidden class="anchor" aria-hidden="true" href="#实例">#</a></h6>
+<p>假设有以下 3 篇文档：</p>
+<table>
+  <thead>
+      <tr>
+          <th>文档ID</th>
+          <th>内容</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1</td>
+          <td>苹果 手机</td>
+      </tr>
+      <tr>
+          <td>2</td>
+          <td>苹果 平板</td>
+      </tr>
+      <tr>
+          <td>3</td>
+          <td>小米 手机</td>
+      </tr>
+  </tbody>
+</table>
+<p>构建倒排索引后：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="ln">1</span><span class="cl"><span class="na">iniCopyEdit&#34;苹果&#34;</span> <span class="o">=</span><span class="s">&gt; [1, 2]</span>
+</span></span><span class="line"><span class="ln">2</span><span class="cl"><span class="na">&#34;手机&#34;</span> <span class="o">=</span><span class="s">&gt; [1, 3]</span>
+</span></span><span class="line"><span class="ln">3</span><span class="cl"><span class="na">&#34;平板&#34;</span> <span class="o">=</span><span class="s">&gt; [2]</span>
+</span></span><span class="line"><span class="ln">4</span><span class="cl"><span class="na">&#34;小米&#34;</span> <span class="o">=</span><span class="s">&gt; [3]</span>
+</span></span></code></pre></div><h6 id="倒排索引的构建">倒排索引的构建<a hidden class="anchor" aria-hidden="true" href="#倒排索引的构建">#</a></h6>
+<p>假设数据</p>
+<p>文档集如下：</p>
+<table>
+  <thead>
+      <tr>
+          <th>文档 ID</th>
+          <th>文本内容</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1</td>
+          <td>&ldquo;I love apple phone&rdquo;</td>
+      </tr>
+      <tr>
+          <td>2</td>
+          <td>&ldquo;Apple releases new phone&rdquo;</td>
+      </tr>
+      <tr>
+          <td>3</td>
+          <td>&ldquo;I like banana&rdquo;</td>
+      </tr>
+  </tbody>
+</table>
+<ol>
+<li>
+<p>文本清洗和规范化（Normalization）</p>
+<p>统一格式，便于处理：</p>
+<ul>
+<li>全部小写：大写 → 小写</li>
+<li>去除标点：<code>,</code>、<code>.</code> 等去除</li>
+<li>去除停用词（如：is, the, a）</li>
+<li>可选：词干提取（stemming）或词形还原（lemmatization）</li>
+</ul>
+<p>处理结果</p>
+<table>
+  <thead>
+      <tr>
+          <th>文档 ID</th>
+          <th>处理后文本</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1</td>
+          <td><code>i love apple phone</code></td>
+      </tr>
+      <tr>
+          <td>2</td>
+          <td><code>apple releases new phone</code></td>
+      </tr>
+      <tr>
+          <td>3</td>
+          <td><code>i like banana</code></td>
+      </tr>
+  </tbody>
+</table>
+</li>
+<li>
+<p>分词（Tokenization）</p>
+<p>将文本拆成一个个词项（token）：</p>
+<table>
+  <thead>
+      <tr>
+          <th>文档 ID</th>
+          <th>Token List</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td>1</td>
+          <td><code>[i, love, apple, phone]</code></td>
+      </tr>
+      <tr>
+          <td>2</td>
+          <td><code>[apple, releases, new, phone]</code></td>
+      </tr>
+      <tr>
+          <td>3</td>
+          <td><code>[i, like, banana]</code></td>
+      </tr>
+  </tbody>
+</table>
+</li>
+<li>
+<p>记录词项在文档中的位置和频率（Posting）</p>
+<p>构建 Posting 结构，一般如下：</p>
+<pre tabindex="0"><code>goCopyEdittype Posting struct {
+  DocID     int
+  Positions []int  // 单词在文档中的位置
+  Frequency int    // 出现次数
+}
+</code></pre><p>如 <code>&quot;apple&quot;</code>：</p>
+<ul>
+<li>出现在文档 1 的位置 3（从 0 开始）</li>
+<li>出现在文档 2 的位置 0</li>
+</ul>
+</li>
+<li>
+<p>构建倒排表（Inverted Index）</p>
+<p>将所有文档中出现的 token 按词项归类，记录在哪些文档中出现，并附带位置信息。</p>
+<p>构建出的倒排索引如下：</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-ini" data-lang="ini"><span class="line"><span class="ln">1</span><span class="cl"><span class="na">iniCopyEdit&#34;i&#34;</span>        <span class="o">=</span><span class="s">&gt; [ {DocID:1, Pos:[0]}, {DocID:3, Pos:[0]} ]</span>
+</span></span><span class="line"><span class="ln">2</span><span class="cl"><span class="na">&#34;love&#34;</span>     <span class="o">=</span><span class="s">&gt; [ {DocID:1, Pos:[1]} ]</span>
+</span></span><span class="line"><span class="ln">3</span><span class="cl"><span class="na">&#34;apple&#34;</span>    <span class="o">=</span><span class="s">&gt; [ {DocID:1, Pos:[2]}, {DocID:2, Pos:[0]} ]</span>
+</span></span><span class="line"><span class="ln">4</span><span class="cl"><span class="na">&#34;phone&#34;</span>    <span class="o">=</span><span class="s">&gt; [ {DocID:1, Pos:[3]}, {DocID:2, Pos:[3]} ]</span>
+</span></span><span class="line"><span class="ln">5</span><span class="cl"><span class="na">&#34;releases&#34;</span> <span class="o">=</span><span class="s">&gt; [ {DocID:2, Pos:[1]} ]</span>
+</span></span><span class="line"><span class="ln">6</span><span class="cl"><span class="na">&#34;new&#34;</span>      <span class="o">=</span><span class="s">&gt; [ {DocID:2, Pos:[2]} ]</span>
+</span></span><span class="line"><span class="ln">7</span><span class="cl"><span class="na">&#34;like&#34;</span>     <span class="o">=</span><span class="s">&gt; [ {DocID:3, Pos:[1]} ]</span>
+</span></span><span class="line"><span class="ln">8</span><span class="cl"><span class="na">&#34;banana&#34;</span>   <span class="o">=</span><span class="s">&gt; [ {DocID:3, Pos:[2]} ]</span>
+</span></span></code></pre></div><p>这就是完整的倒排索引。</p>
+</li>
+<li>
+<p>压缩与优化（Lucene/ES 实现细节）</p>
+<p>真实系统中，为了节省空间和提高查询效率，还会进行：</p>
+<table>
+  <thead>
+      <tr>
+          <th>技术名</th>
+          <th>作用</th>
+      </tr>
+  </thead>
+  <tbody>
+      <tr>
+          <td><strong>跳跃表（skip list）</strong></td>
+          <td>快速跳过不相关文档块，提升查找效率</td>
+      </tr>
+      <tr>
+          <td><strong>位图压缩（Roaring bitmap）</strong></td>
+          <td>压缩大规模 DocID 集合，提高布尔查询速度</td>
+      </tr>
+      <tr>
+          <td><strong>前缀压缩（Front coding）</strong></td>
+          <td>压缩词典中相似词项（如 apple, apples）</td>
+      </tr>
+      <tr>
+          <td><strong>段合并（Segment Merge）</strong></td>
+          <td>多个小段合并减少碎片，提升读取性能</td>
+      </tr>
+  </tbody>
+</table>
+</li>
+</ol>
+<h3></h3>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+    </ul>
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span><a href="https://sonnycalcr.github.io/">©2025 killingamockingbird&rsquo;s Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+</body>
+
+</html>

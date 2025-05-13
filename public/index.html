@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <meta name="robots" content="noindex, nofollow">
-<title>echoingsilence&#39;s Blog</title>
+<title>killingamockingbird&#39;s Blog</title>
 
 <meta name="description" content="">
 <meta name="author" content="">
@@ -76,7 +76,7 @@
 <header class="header">
     <nav class="nav">
         <div class="logo">
-            <a href="http://localhost:1313/" accesskey="h" title="echoingsilence&#39;s Blog (Alt + H)">echoingsilence&#39;s Blog</a>
+            <a href="http://localhost:1313/" accesskey="h" title="killingamockingbird&#39;s Blog (Alt + H)">killingamockingbird&#39;s Blog</a>
             <div class="logo-switches">
                 <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
                     <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
@@ -102,7 +102,7 @@
         </div>
         <ul id="menu">
             <li>
-                <a href="http://localhost:1313/" title="echoingsilence&#39;s Blog">
+                <a href="http://localhost:1313/" title="killingamockingbird&#39;s Blog">
                     <span class="active">首页</span>
                 </a>
             </li>
@@ -137,6 +137,33 @@
 <main class="main"> 
 
 <article class="first-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">ETCD
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>ETCD kratos源码分析理解 1type Option func(o *options) 2 3type options struct { 4	ctx context.Context 5	namespace string 6	ttl time.Duration 7	maxRetry int 8} 9// Context with registry context. 10func Context(ctx context.Context) Option { 11	return func(o *options) { o.ctx = ctx } 12} 13 14// Namespace with registry namespace. 15func Namespace(ns string) Option { 16	return func(o *options) { o.namespace = ns } 17} 18 19// RegisterTTL with register ttl. 20func RegisterTTL(ttl time.Duration) Option { 21	return func(o *options) { o.ttl = ttl } 22} 23 24func MaxRetry(num int) Option { 25	return func(o *options) { o.maxRetry = num } 26} 27// Registry is etcd registry. 28type Registry struct { 29	opts *options 30	client *clientv3.Client 31	kv clientv3.KV 32	lease clientv3.Lease 33	/* 34	ctxMap is used to store the context cancel function of each service instance. 35	When the service instance is deregistered, the corresponding context cancel function is called to stop the heartbeat. 36	*/ 37	ctxMap map[string]*serviceCancel 38} 这是kratos框架源码里部分的配置和结构体：
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2025-05-12 11:14:00 +0800 CST'>五月 12, 2025</span></footer>
+  <a class="entry-link" aria-label="post link to ETCD" href="http://localhost:1313/posts/etcd/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">Introduction to Microservice
+    </h2>
+  </header>
+  <div class="entry-content">
+    <p>初识微服务 引入 单体灾难 单体架构（Monolithic Architecture）虽然开发简单、部署方便，但随着系统规模变大弊端十分明显。
+功能模块耦合度高，代码难以维护 功能难以修改，牵一发而动全身 难以扩展，工程量大 救赎之道：微服务架构 微服务的定义 《The Art of Scalability》描述了一个三维可拓展模型
+...</p>
+  </div>
+  <footer class="entry-footer"><span title='2025-04-27 11:24:00 +0800 CST'>四月 27, 2025</span></footer>
+  <a class="entry-link" aria-label="post link to Introduction to Microservice" href="http://localhost:1313/posts/2025-04-27-introduction-to-microservice/"></a>
+</article>
+
+<article class="post-entry"> 
   <header class="entry-header">
     <h2 class="entry-hint-parent">test
     </h2>
@@ -179,6 +206,19 @@
     </h2>
   </header>
   <div class="entry-content">
+    <p>ElasticSearch 核心概念 文档（Document）：ES 存储的基本单元，类似一条 JSON 数据 索引（Index）：存储一类文档的集合，类似于数据库中的表。 字段（Field）：文档中的每个键值对。 倒排索引：ES 的底层结构，用于加速全文搜索。 分片（Shard）与副本（Replica）：ES 支持分布式存储和查询，分片用于水平扩展。 底层逻辑 索引 在介绍倒排索引之前，我们先来了解一下正排索引和全文检索。
+...</p>
+  </div>
+  <footer class="entry-footer"></footer>
+  <a class="entry-link" aria-label="post link to " href="http://localhost:1313/posts/elasticsearch/"></a>
+</article>
+
+<article class="post-entry"> 
+  <header class="entry-header">
+    <h2 class="entry-hint-parent">
+    </h2>
+  </header>
+  <div class="entry-content">
     <p></p>
   </div>
   <footer class="entry-footer"></footer>
@@ -199,7 +239,7 @@
     </main>
     
 <footer class="footer">
-        <span><a href="https://sonnycalcr.github.io/">©2025 SonnyCalcr&rsquo;s Blog</a></span> · 
+        <span><a href="https://sonnycalcr.github.io/">©2025 killingamockingbird&rsquo;s Blog</a></span> · 
 
     <span>
         Powered by

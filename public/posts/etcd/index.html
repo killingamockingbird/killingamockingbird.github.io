@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh" dir="auto">
+
+<head><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script><meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+<meta name="robots" content="noindex, nofollow">
+<title>ETCD | killingamockingbird&#39;s Blog</title>
+<meta name="keywords" content="">
+<meta name="description" content="ETCD
+
+kratos源码分析理解
+ 1type Option func(o *options)
+ 2
+ 3type options struct {
+ 4	ctx       context.Context
+ 5	namespace string
+ 6	ttl       time.Duration
+ 7	maxRetry  int
+ 8}
+ 9// Context with registry context.
+10func Context(ctx context.Context) Option {
+11	return func(o *options) { o.ctx = ctx }
+12}
+13
+14// Namespace with registry namespace.
+15func Namespace(ns string) Option {
+16	return func(o *options) { o.namespace = ns }
+17}
+18
+19// RegisterTTL with register ttl.
+20func RegisterTTL(ttl time.Duration) Option {
+21	return func(o *options) { o.ttl = ttl }
+22}
+23
+24func MaxRetry(num int) Option {
+25	return func(o *options) { o.maxRetry = num }
+26}
+27// Registry is etcd registry.
+28type Registry struct {
+29	opts   *options
+30	client *clientv3.Client
+31	kv     clientv3.KV
+32	lease  clientv3.Lease
+33	/*
+34		ctxMap is used to store the context cancel function of each service instance.
+35		When the service instance is deregistered, the corresponding context cancel function is called to stop the heartbeat.
+36	*/
+37	ctxMap map[string]*serviceCancel
+38}
+这是kratos框架源码里部分的配置和结构体：">
+<meta name="author" content="">
+<link rel="canonical" href="http://localhost:1313/posts/etcd/">
+<link crossorigin="anonymous" href="/assets/css/stylesheet.f49d66caae9ea0fd43f21f29e71a8d3e284517ed770f2aa86fa012953ad3c9ef.css" integrity="sha256-9J1myq6eoP1D8h8p5xqNPihFF&#43;13Dyqob6ASlTrTye8=" rel="preload stylesheet" as="style">
+<link rel="icon" href="http://localhost:1313/favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="http://localhost:1313/favicon-16x16.png">
+<link rel="icon" type="image/png" sizes="32x32" href="http://localhost:1313/favicon-32x32.png">
+<link rel="apple-touch-icon" href="http://localhost:1313/apple-touch-icon.png">
+<link rel="mask-icon" href="http://localhost:1313/safari-pinned-tab.svg">
+<meta name="theme-color" content="#2e2e33">
+<meta name="msapplication-TileColor" content="#2e2e33">
+<link rel="alternate" hreflang="zh" href="http://localhost:1313/posts/etcd/">
+<noscript>
+    <style>
+        #theme-toggle,
+        .top-link {
+            display: none;
+        }
+
+    </style>
+    <style>
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --theme: rgb(29, 30, 32);
+                --entry: rgb(46, 46, 51);
+                --primary: rgb(218, 218, 219);
+                --secondary: rgb(155, 156, 157);
+                --tertiary: rgb(65, 66, 68);
+                --content: rgb(196, 196, 197);
+                --code-block-bg: rgb(46, 46, 51);
+                --code-bg: rgb(55, 56, 62);
+                --border: rgb(51, 51, 51);
+            }
+
+            .list {
+                background: var(--theme);
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-track {
+                background: 0 0;
+            }
+
+            .list:not(.dark)::-webkit-scrollbar-thumb {
+                border-color: var(--theme);
+            }
+        }
+
+    </style>
+</noscript>
+</head>
+
+<body class="" id="top">
+<script>
+    if (localStorage.getItem("pref-theme") === "dark") {
+        document.body.classList.add('dark');
+    } else if (localStorage.getItem("pref-theme") === "light") {
+        document.body.classList.remove('dark')
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.body.classList.add('dark');
+    }
+
+</script>
+
+<header class="header">
+    <nav class="nav">
+        <div class="logo">
+            <a href="http://localhost:1313/" accesskey="h" title="killingamockingbird&#39;s Blog (Alt + H)">killingamockingbird&#39;s Blog</a>
+            <div class="logo-switches">
+                <button id="theme-toggle" accesskey="t" title="(Alt + T)" aria-label="Toggle theme">
+                    <svg id="moon" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                    <svg id="sun" xmlns="http://www.w3.org/2000/svg" width="24" height="18" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <ul id="menu">
+            <li>
+                <a href="http://localhost:1313/" title="killingamockingbird&#39;s Blog">
+                    <span>首页</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/archives/" title="归档">
+                    <span>归档</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/categories/" title="Categories">
+                    <span>分类</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/tags/" title="Tags">
+                    <span>标签</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/search/" title="搜索">
+                    <span>搜索</span>
+                </a>
+            </li>
+            <li>
+                <a href="http://localhost:1313/about/" title="关于">
+                    <span>关于</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</header>
+<main class="main">
+
+<article class="post-single">
+  <header class="post-header">
+    
+    <h1 class="post-title entry-hint-parent">
+      ETCD
+    </h1>
+    <div class="post-meta"><span title='2025-05-12 11:14:00 +0800 CST'>五月 12, 2025</span>
+
+</div>
+  </header> 
+  <div class="post-content"><h1 id="etcd">ETCD<a hidden class="anchor" aria-hidden="true" href="#etcd">#</a></h1>
+<p><img alt="image-20250512114939110" loading="lazy" src="image-20250512114939110.png"></p>
+<h2 id="kratos源码分析理解">kratos源码分析理解<a hidden class="anchor" aria-hidden="true" href="#kratos源码分析理解">#</a></h2>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="ln"> 1</span><span class="cl"><span class="kd">type</span> <span class="nx">Option</span> <span class="kd">func</span><span class="p">(</span><span class="nx">o</span> <span class="o">*</span><span class="nx">options</span><span class="p">)</span>
+</span></span><span class="line"><span class="ln"> 2</span><span class="cl">
+</span></span><span class="line"><span class="ln"> 3</span><span class="cl"><span class="kd">type</span> <span class="nx">options</span> <span class="kd">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="ln"> 4</span><span class="cl">	<span class="nx">ctx</span>       <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span>
+</span></span><span class="line"><span class="ln"> 5</span><span class="cl">	<span class="nx">namespace</span> <span class="kt">string</span>
+</span></span><span class="line"><span class="ln"> 6</span><span class="cl">	<span class="nx">ttl</span>       <span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span>
+</span></span><span class="line"><span class="ln"> 7</span><span class="cl">	<span class="nx">maxRetry</span>  <span class="kt">int</span>
+</span></span><span class="line"><span class="ln"> 8</span><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="ln"> 9</span><span class="cl"><span class="c1">// Context with registry context.</span>
+</span></span><span class="line"><span class="ln">10</span><span class="cl"><span class="kd">func</span> <span class="nf">Context</span><span class="p">(</span><span class="nx">ctx</span> <span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">)</span> <span class="nx">Option</span> <span class="p">{</span>
+</span></span><span class="line"><span class="ln">11</span><span class="cl">	<span class="k">return</span> <span class="kd">func</span><span class="p">(</span><span class="nx">o</span> <span class="o">*</span><span class="nx">options</span><span class="p">)</span> <span class="p">{</span> <span class="nx">o</span><span class="p">.</span><span class="nx">ctx</span> <span class="p">=</span> <span class="nx">ctx</span> <span class="p">}</span>
+</span></span><span class="line"><span class="ln">12</span><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="ln">13</span><span class="cl">
+</span></span><span class="line"><span class="ln">14</span><span class="cl"><span class="c1">// Namespace with registry namespace.</span>
+</span></span><span class="line"><span class="ln">15</span><span class="cl"><span class="kd">func</span> <span class="nf">Namespace</span><span class="p">(</span><span class="nx">ns</span> <span class="kt">string</span><span class="p">)</span> <span class="nx">Option</span> <span class="p">{</span>
+</span></span><span class="line"><span class="ln">16</span><span class="cl">	<span class="k">return</span> <span class="kd">func</span><span class="p">(</span><span class="nx">o</span> <span class="o">*</span><span class="nx">options</span><span class="p">)</span> <span class="p">{</span> <span class="nx">o</span><span class="p">.</span><span class="nx">namespace</span> <span class="p">=</span> <span class="nx">ns</span> <span class="p">}</span>
+</span></span><span class="line"><span class="ln">17</span><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="ln">18</span><span class="cl">
+</span></span><span class="line"><span class="ln">19</span><span class="cl"><span class="c1">// RegisterTTL with register ttl.</span>
+</span></span><span class="line"><span class="ln">20</span><span class="cl"><span class="kd">func</span> <span class="nf">RegisterTTL</span><span class="p">(</span><span class="nx">ttl</span> <span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="p">)</span> <span class="nx">Option</span> <span class="p">{</span>
+</span></span><span class="line"><span class="ln">21</span><span class="cl">	<span class="k">return</span> <span class="kd">func</span><span class="p">(</span><span class="nx">o</span> <span class="o">*</span><span class="nx">options</span><span class="p">)</span> <span class="p">{</span> <span class="nx">o</span><span class="p">.</span><span class="nx">ttl</span> <span class="p">=</span> <span class="nx">ttl</span> <span class="p">}</span>
+</span></span><span class="line"><span class="ln">22</span><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="ln">23</span><span class="cl">
+</span></span><span class="line"><span class="ln">24</span><span class="cl"><span class="kd">func</span> <span class="nf">MaxRetry</span><span class="p">(</span><span class="nx">num</span> <span class="kt">int</span><span class="p">)</span> <span class="nx">Option</span> <span class="p">{</span>
+</span></span><span class="line"><span class="ln">25</span><span class="cl">	<span class="k">return</span> <span class="kd">func</span><span class="p">(</span><span class="nx">o</span> <span class="o">*</span><span class="nx">options</span><span class="p">)</span> <span class="p">{</span> <span class="nx">o</span><span class="p">.</span><span class="nx">maxRetry</span> <span class="p">=</span> <span class="nx">num</span> <span class="p">}</span>
+</span></span><span class="line"><span class="ln">26</span><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="ln">27</span><span class="cl"><span class="c1">// Registry is etcd registry.</span>
+</span></span><span class="line"><span class="ln">28</span><span class="cl"><span class="kd">type</span> <span class="nx">Registry</span> <span class="kd">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="ln">29</span><span class="cl">	<span class="nx">opts</span>   <span class="o">*</span><span class="nx">options</span>
+</span></span><span class="line"><span class="ln">30</span><span class="cl">	<span class="nx">client</span> <span class="o">*</span><span class="nx">clientv3</span><span class="p">.</span><span class="nx">Client</span>
+</span></span><span class="line"><span class="ln">31</span><span class="cl">	<span class="nx">kv</span>     <span class="nx">clientv3</span><span class="p">.</span><span class="nx">KV</span>
+</span></span><span class="line"><span class="ln">32</span><span class="cl">	<span class="nx">lease</span>  <span class="nx">clientv3</span><span class="p">.</span><span class="nx">Lease</span>
+</span></span><span class="line"><span class="ln">33</span><span class="cl">	<span class="cm">/*
+</span></span></span><span class="line"><span class="ln">34</span><span class="cl"><span class="cm">		ctxMap is used to store the context cancel function of each service instance.
+</span></span></span><span class="line"><span class="ln">35</span><span class="cl"><span class="cm">		When the service instance is deregistered, the corresponding context cancel function is called to stop the heartbeat.
+</span></span></span><span class="line"><span class="ln">36</span><span class="cl"><span class="cm">	*/</span>
+</span></span><span class="line"><span class="ln">37</span><span class="cl">	<span class="nx">ctxMap</span> <span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="o">*</span><span class="nx">serviceCancel</span>
+</span></span><span class="line"><span class="ln">38</span><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>这是kratos框架源码里部分的配置和结构体：</p>
+<ul>
+<li>options
+<ul>
+<li>ctx，用context.ground作为默认的上下文，表示不会主动取消</li>
+<li>namespace，命名空间，用来标识注册的微服务，如&quot;pay&quot;,&ldquo;item&quot;等</li>
+<li>ttl，注册的服务默认过期时间</li>
+<li>maxRetry，最大尝试次数</li>
+</ul>
+</li>
+<li>registy
+<ul>
+<li>opts，就是上面配置的options</li>
+<li>client，etcd客户端</li>
+<li>kv，使用clientv3.NewKV(client)创建的KV操作对象,用于etcd交互</li>
+<li>ctxMap，一个map，存储context便于心跳管理。</li>
+</ul>
+</li>
+</ul>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-go" data-lang="go"><span class="line"><span class="ln"> 1</span><span class="cl"><span class="c1">// New creates etcd registry</span>
+</span></span><span class="line"><span class="ln"> 2</span><span class="cl"><span class="kd">func</span> <span class="nf">New</span><span class="p">(</span><span class="nx">client</span> <span class="o">*</span><span class="nx">clientv3</span><span class="p">.</span><span class="nx">Client</span><span class="p">,</span> <span class="nx">opts</span> <span class="o">...</span><span class="nx">Option</span><span class="p">)</span> <span class="p">(</span><span class="nx">r</span> <span class="o">*</span><span class="nx">Registry</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="ln"> 3</span><span class="cl">	<span class="nx">op</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">options</span><span class="p">{</span>
+</span></span><span class="line"><span class="ln"> 4</span><span class="cl">		<span class="nx">ctx</span><span class="p">:</span>       <span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">(),</span>
+</span></span><span class="line"><span class="ln"> 5</span><span class="cl">		<span class="nx">namespace</span><span class="p">:</span> <span class="s">&#34;/microservices&#34;</span><span class="p">,</span>
+</span></span><span class="line"><span class="ln"> 6</span><span class="cl">		<span class="nx">ttl</span><span class="p">:</span>       <span class="nx">time</span><span class="p">.</span><span class="nx">Second</span> <span class="o">*</span> <span class="mi">15</span><span class="p">,</span>
+</span></span><span class="line"><span class="ln"> 7</span><span class="cl">		<span class="nx">maxRetry</span><span class="p">:</span>  <span class="mi">5</span><span class="p">,</span>
+</span></span><span class="line"><span class="ln"> 8</span><span class="cl">	<span class="p">}</span><span class="c1">//默认配置</span>
+</span></span><span class="line"><span class="ln"> 9</span><span class="cl">	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">o</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">opts</span> <span class="p">{</span>
+</span></span><span class="line"><span class="ln">10</span><span class="cl">		<span class="nf">o</span><span class="p">(</span><span class="nx">op</span><span class="p">)</span><span class="c1">//更新读入的地址</span>
+</span></span><span class="line"><span class="ln">11</span><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="ln">12</span><span class="cl">	<span class="k">return</span> <span class="o">&amp;</span><span class="nx">Registry</span><span class="p">{</span>
+</span></span><span class="line"><span class="ln">13</span><span class="cl">		<span class="nx">opts</span><span class="p">:</span>   <span class="nx">op</span><span class="p">,</span>
+</span></span><span class="line"><span class="ln">14</span><span class="cl">		<span class="nx">client</span><span class="p">:</span> <span class="nx">client</span><span class="p">,</span>
+</span></span><span class="line"><span class="ln">15</span><span class="cl">		<span class="nx">kv</span><span class="p">:</span>     <span class="nx">clientv3</span><span class="p">.</span><span class="nf">NewKV</span><span class="p">(</span><span class="nx">client</span><span class="p">),</span>
+</span></span><span class="line"><span class="ln">16</span><span class="cl">		<span class="nx">ctxMap</span><span class="p">:</span> <span class="nb">make</span><span class="p">(</span><span class="kd">map</span><span class="p">[</span><span class="kt">string</span><span class="p">]</span><span class="o">*</span><span class="nx">serviceCancel</span><span class="p">),</span>
+</span></span><span class="line"><span class="ln">17</span><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="ln">18</span><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>New函数来配置一些基本的信息：</p>
+
+
+  </div>
+
+  <footer class="post-footer">
+    <ul class="post-tags">
+    </ul>
+  </footer>
+</article>
+    </main>
+    
+<footer class="footer">
+        <span><a href="https://sonnycalcr.github.io/">©2025 killingamockingbird&rsquo;s Blog</a></span> · 
+
+    <span>
+        Powered by
+        <a href="https://gohugo.io/" rel="noopener noreferrer" target="_blank">Hugo</a> &
+        <a href="https://github.com/adityatelange/hugo-PaperMod/" rel="noopener" target="_blank">PaperMod</a>
+    </span>
+</footer>
+<a href="#top" aria-label="go to top" title="Go to Top (Alt + G)" class="top-link" id="top-link" accesskey="g">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 6" fill="currentColor">
+        <path d="M12 6H0l6-6z" />
+    </svg>
+</a>
+
+<script>
+    let menu = document.getElementById('menu')
+    if (menu) {
+        menu.scrollLeft = localStorage.getItem("menu-scroll-position");
+        menu.onscroll = function () {
+            localStorage.setItem("menu-scroll-position", menu.scrollLeft);
+        }
+    }
+
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener("click", function (e) {
+            e.preventDefault();
+            var id = this.getAttribute("href").substr(1);
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView({
+                    behavior: "smooth"
+                });
+            } else {
+                document.querySelector(`[id='${decodeURIComponent(id)}']`).scrollIntoView();
+            }
+            if (id === "top") {
+                history.replaceState(null, null, " ");
+            } else {
+                history.pushState(null, null, `#${id}`);
+            }
+        });
+    });
+
+</script>
+<script>
+    var mybutton = document.getElementById("top-link");
+    window.onscroll = function () {
+        if (document.body.scrollTop > 800 || document.documentElement.scrollTop > 800) {
+            mybutton.style.visibility = "visible";
+            mybutton.style.opacity = "1";
+        } else {
+            mybutton.style.visibility = "hidden";
+            mybutton.style.opacity = "0";
+        }
+    };
+
+</script>
+<script>
+    document.getElementById("theme-toggle").addEventListener("click", () => {
+        if (document.body.className.includes("dark")) {
+            document.body.classList.remove('dark');
+            localStorage.setItem("pref-theme", 'light');
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem("pref-theme", 'dark');
+        }
+    })
+
+</script>
+</body>
+
+</html>
