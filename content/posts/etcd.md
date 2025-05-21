@@ -6,7 +6,7 @@ date : 2025-05-12T11:14:00+08:00
 
 # ETCD
 
-![etcd](./assets/image-20250512114939110.png)
+![etcd](../../static/img/image-20250512114939110.png)
 
 
 
