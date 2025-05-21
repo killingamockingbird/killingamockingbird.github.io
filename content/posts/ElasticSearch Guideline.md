@@ -1,6 +1,6 @@
 ---
 title : "ElasticSearch Guideline"
-date : 2025-05-17T14:09;00+08:00
+date : 2025-05-17T14:09:00+08:00
 ---
 
 # ElasticSearch Guideline
