@@ -6,7 +6,7 @@ date : 2025-05-12T11:14:00+08:00
 
 # ETCD
 
-![etcd](https://github.com/killingamockingbird/killingamockingbird.github.io/blob/main/content/posts/image-20250512114939110.png?raw=true)
+![etcd](./assets/image-20250512114939110.png)
 
 
 

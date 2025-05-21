@@ -22,7 +22,7 @@ date : 2025-04-27T11:24:00+08:00
 
 《The Art of Scalability》描述了一个三维可拓展模型
 
-![image-20250427113122771](C:\Users\17863\AppData\Roaming\Typora\typora-user-images\image-20250427113122771.png)
+![image-20250427113122771](./assets/image-20250427113122771.png)
 
 
 
